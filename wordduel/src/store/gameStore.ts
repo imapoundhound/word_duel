@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { GameState, Player, GameMode, GameSettings } from '../types/game';
 import { getRandomWord, isValidWord, generateFeedback } from '../utils/wordValidation';
+import { multiplayerService } from '../services/multiplayerService';
 
 interface GameStore {
   // State
@@ -41,69 +42,48 @@ export const useGameStore = create<GameStore>((set, get) => ({
   // Actions
   createGame: (mode, playerName, customSettings = {}) => {
     const settings = { ...defaultSettings, ...customSettings };
-    const targetWord = getRandomWord();
     
-    const hostPlayer: Player = {
-      id: `player_${Date.now()}`,
-      name: playerName,
-      isHost: true,
-      isBot: false,
-      score: 0,
-      currentGuess: '',
-      guesses: [],
-      attempts: 0,
-      hasWon: false,
-    };
+    try {
+      const gameId = multiplayerService.createGame(mode, playerName, settings.maxPlayers);
+      const gameState = multiplayerService.getGame(gameId);
+      
+      if (gameState) {
+        set({
+          gameState,
+          currentMode: mode,
+          settings,
+          error: null,
+        });
 
-    const gameState: GameState = {
-      id: `game_${Date.now()}`,
-      status: 'waiting',
-      targetWord,
-      players: [hostPlayer],
-      currentPlayerIndex: 0,
-      maxAttempts: settings.maxAttempts,
-      roundNumber: 1,
-      createdAt: new Date(),
-    };
-
-    set({
-      gameState,
-      currentMode: mode,
-      settings,
-      error: null,
-    });
+        // Subscribe to game updates
+        multiplayerService.subscribeToGame(gameId, (updatedGame) => {
+          set({ gameState: updatedGame });
+        });
+      }
+    } catch (error) {
+      set({ error: 'Failed to create game' });
+    }
   },
 
   joinGame: (gameId, playerName) => {
-    const { gameState } = get();
-    if (!gameState || gameState.status !== 'waiting') {
-      set({ error: 'Cannot join game' });
-      return;
+    try {
+      const success = multiplayerService.joinGame(gameId, playerName);
+      if (success) {
+        const gameState = multiplayerService.getGame(gameId);
+        if (gameState) {
+          set({ gameState, error: null });
+          
+          // Subscribe to game updates
+          multiplayerService.subscribeToGame(gameId, (updatedGame) => {
+            set({ gameState: updatedGame });
+          });
+        }
+      } else {
+        set({ error: 'Cannot join game' });
+      }
+    } catch (error) {
+      set({ error: 'Failed to join game' });
     }
-
-    if (gameState.players.length >= get().settings.maxPlayers) {
-      set({ error: 'Game is full' });
-      return;
-    }
-
-    const newPlayer: Player = {
-      id: `player_${Date.now()}`,
-      name: playerName,
-      isHost: false,
-      isBot: false,
-      score: 0,
-      currentGuess: '',
-      guesses: [],
-      attempts: 0,
-      hasWon: false,
-    };
-
-    set({
-      gameState: {
-        ...gameState,
-        players: [...gameState.players, newPlayer],
-      },
-    });
   },
 
   addPlayer: (playerData) => {
@@ -127,15 +107,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState } = get();
     if (!gameState) return;
 
-    const updatedPlayers = gameState.players.filter(p => p.id !== playerId);
-    
-    set({
-      gameState: {
-        ...gameState,
-        players: updatedPlayers,
-        currentPlayerIndex: Math.min(gameState.currentPlayerIndex, updatedPlayers.length - 1),
-      },
-    });
+    multiplayerService.removePlayer(gameState.id, playerId);
   },
 
   startGame: () => {
@@ -145,13 +117,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    set({
-      gameState: {
-        ...gameState,
-        status: 'playing',
-        startedAt: new Date(),
-      },
-    });
+    try {
+      const success = multiplayerService.startGame(gameState.id);
+      if (!success) {
+        set({ error: 'Failed to start game' });
+      }
+    } catch (error) {
+      set({ error: 'Failed to start game' });
+    }
   },
 
   makeGuess: (playerId, guess) => {
@@ -163,37 +136,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    const playerIndex = gameState.players.findIndex(p => p.id === playerId);
-    if (playerIndex === -1) return;
-
-    const player = gameState.players[playerIndex];
-    if (player.attempts >= gameState.maxAttempts || player.hasWon) return;
-
-    const feedback = generateFeedback(guess, gameState.targetWord);
-    const isCorrect = feedback.isCorrect;
-
-    const updatedPlayers = [...gameState.players];
-    updatedPlayers[playerIndex] = {
-      ...player,
-      guesses: [...player.guesses, guess],
-      attempts: player.attempts + 1,
-      hasWon: isCorrect,
-      score: isCorrect ? Math.max(0, gameState.maxAttempts - player.attempts) : player.score,
-    };
-
-    // Check if game should end
-    const allPlayersFinished = updatedPlayers.every(p => 
-      p.hasWon || p.attempts >= gameState.maxAttempts
-    );
-
-    set({
-      gameState: {
-        ...gameState,
-        players: updatedPlayers,
-        status: allPlayersFinished ? 'finished' : 'playing',
-        endedAt: allPlayersFinished ? new Date() : undefined,
-      },
-    });
+    try {
+      const success = multiplayerService.makeGuess(gameState.id, playerId, guess);
+      if (!success) {
+        set({ error: 'Failed to submit guess' });
+      }
+    } catch (error) {
+      set({ error: 'Failed to submit guess' });
+    }
   },
 
   endGame: () => {
@@ -224,29 +174,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { gameState, settings } = get();
     if (!gameState || !settings.allowBots) return;
 
-    const botNames = ['Bot Alpha', 'Bot Beta', 'Bot Gamma', 'Bot Delta'];
-    const usedNames = gameState.players.map(p => p.name);
-    const availableNames = botNames.filter(name => !usedNames.includes(name));
-
-    if (availableNames.length === 0) return;
-
-    const botPlayer: Player = {
-      id: `bot_${Date.now()}`,
-      name: availableNames[0],
-      isHost: false,
-      isBot: true,
-      score: 0,
-      currentGuess: '',
-      guesses: [],
-      attempts: 0,
-      hasWon: false,
-    };
-
-    set({
-      gameState: {
-        ...gameState,
-        players: [...gameState.players, botPlayer],
-      },
-    });
+    try {
+      const success = multiplayerService.addBot(gameState.id);
+      if (!success) {
+        set({ error: 'Failed to add bot' });
+      }
+    } catch (error) {
+      set({ error: 'Failed to add bot' });
+    }
   },
 }));
