@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordDuel - Standalone Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .game-area {
+            padding: 30px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 30px;
+        }
+
+        .game-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+
+        .game-cell {
+            aspect-ratio: 1;
+            border: 2px solid #d3d6da;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        .game-cell.filled {
+            border-color: #878a8c;
+        }
+
+        .game-cell.correct {
+            background: #6aaa64;
+            border-color: #6aaa64;
+            color: white;
+        }
+
+        .game-cell.present {
+            background: #c9b458;
+            border-color: #c9b458;
+            color: white;
+        }
+
+        .game-cell.absent {
+            background: #787c7e;
+            border-color: #787c7e;
+            color: white;
+        }
+
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .keyboard-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .key {
+            background: #d3d6da;
+            border: none;
+            border-radius: 4px;
+            padding: 15px 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            min-width: 40px;
+            transition: all 0.2s ease;
+        }
+
+        .key:hover {
+            background: #b8b8b8;
+        }
+
+        .key.special {
+            min-width: 65px;
+        }
+
+        .key.correct {
+            background: #6aaa64;
+            color: white;
+        }
+
+        .key.present {
+            background: #c9b458;
+            color: white;
+        }
+
+        .key.absent {
+            background: #787c7e;
+            color: white;
+        }
+
+        .input-area {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .word-input {
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #d3d6da;
+            border-radius: 8px;
+            width: 200px;
+            text-align: center;
+            text-transform: uppercase;
+            margin-right: 10px;
+        }
+
+        .submit-btn {
+            padding: 15px 25px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            background: #2980b9;
+        }
+
+        .submit-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .message {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .stats {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .new-game-btn {
+            padding: 15px 30px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            margin-top: 20px;
+        }
+
+        .new-game-btn:hover {
+            background: #229954;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .title {
+                font-size: 2.5rem;
+            }
+            
+            .game-cell {
+                font-size: 1.5rem;
+            }
+            
+            .key {
+                padding: 12px 8px;
+                min-width: 35px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">WordDuel</div>
+            <div class="subtitle">Multiplayer Wordle Challenge</div>
+        </div>
+        
+        <div class="game-area">
+            <div class="input-area">
+                <input type="text" class="word-input" id="wordInput" placeholder="Enter 5-letter word" maxlength="5">
+                <button class="submit-btn" id="submitBtn">Submit</button>
+            </div>
+            
+            <div class="message" id="message" style="display: none;"></div>
+            
+            <div class="game-board" id="gameBoard"></div>
+            
+            <div class="keyboard" id="keyboard"></div>
+            
+            <div class="stats" id="stats" style="display: none;">
+                <h3>Game Statistics</h3>
+                <p>Attempts: <span id="attempts">0</span></p>
+                <p>Status: <span id="gameStatus">Playing</span></p>
+                <button class="new-game-btn" id="newGameBtn">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let currentWord = '';
+        let currentGuess = '';
+        let attempts = 0;
+        let gameWon = false;
+        let gameOver = false;
+        
+        // Word list (common 5-letter words)
+        const words = [
+            'about', 'above', 'abuse', 'actor', 'acute', 'admit', 'adopt', 'adult', 'after', 'again',
+            'agent', 'agree', 'ahead', 'alarm', 'album', 'alert', 'alike', 'alive', 'allow', 'alone',
+            'along', 'alter', 'among', 'anger', 'angle', 'angry', 'apart', 'apple', 'apply', 'arena',
+            'argue', 'arise', 'array', 'aside', 'asset', 'audio', 'audit', 'avoid', 'award', 'aware',
+            'badly', 'baker', 'bases', 'basic', 'beach', 'began', 'begin', 'being', 'below', 'bench',
+            'billy', 'birth', 'black', 'blame', 'blank', 'blind', 'block', 'blood', 'blow', 'blue',
+            'board', 'boost', 'booth', 'bound', 'brain', 'brand', 'bread', 'break', 'breed', 'brief',
+            'bring', 'broad', 'broke', 'brown', 'build', 'built', 'buyer', 'cable', 'calif', 'carry',
+            'catch', 'cause', 'chain', 'chair', 'chart', 'chase', 'cheap', 'check', 'chest', 'chief',
+            'child', 'china', 'chose', 'civil', 'claim', 'class', 'clean', 'clear', 'click', 'climb',
+            'clock', 'close', 'coach', 'coast', 'could', 'count', 'court', 'cover', 'craft', 'crash',
+            'cream', 'crime', 'cross', 'crowd', 'crown', 'crude', 'crush', 'curve', 'cycle', 'daily',
+            'dance', 'dated', 'dealt', 'death', 'debut', 'delay', 'depth', 'doing', 'doubt', 'dozen',
+            'draft', 'drama', 'drank', 'draw', 'dress', 'drill', 'drink', 'drive', 'drop', 'drove',
+            'dying', 'eager', 'early', 'earth', 'eight', 'elite', 'empty', 'enemy', 'enjoy', 'enter',
+            'entry', 'equal', 'error', 'event', 'every', 'exact', 'exist', 'extra', 'faith', 'false',
+            'fault', 'fiber', 'field', 'fifth', 'fifty', 'fight', 'final', 'first', 'fixed', 'flash',
+            'fleet', 'floor', 'fluid', 'focus', 'force', 'forth', 'forty', 'forum', 'found', 'frame',
+            'frank', 'fraud', 'fresh', 'front', 'fruit', 'fully', 'funny', 'giant', 'given', 'glass',
+            'globe', 'going', 'grace', 'grade', 'grand', 'grant', 'grass', 'grave', 'great', 'green',
+            'gross', 'group', 'grown', 'guard', 'guess', 'guest', 'guide', 'happy', 'harry', 'heart',
+            'heavy', 'hence', 'henry', 'horse', 'hotel', 'house', 'human', 'ideal', 'image', 'index',
+            'inner', 'input', 'issue', 'japan', 'jimmy', 'joint', 'jones', 'judge', 'known', 'label',
+            'large', 'laser', 'later', 'laugh', 'layer', 'learn', 'lease', 'least', 'leave', 'legal',
+            'level', 'lewis', 'light', 'limit', 'links', 'lives', 'local', 'loose', 'lower', 'lucky',
+            'lunch', 'lying', 'magic', 'major', 'maker', 'march', 'maria', 'match', 'maybe', 'mayor',
+            'meant', 'media', 'metal', 'might', 'minor', 'minus', 'mixed', 'model', 'money', 'month',
+            'moral', 'motor', 'mount', 'mouse', 'mouth', 'moved', 'movie', 'music', 'needs', 'never',
+            'newly', 'night', 'noise', 'north', 'noted', 'novel', 'nurse', 'occur', 'ocean', 'offer',
+            'often', 'order', 'other', 'ought', 'paint', 'panel', 'paper', 'party', 'peace', 'peter',
+            'phase', 'phone', 'photo', 'piece', 'pilot', 'pitch', 'place', 'plain', 'plane', 'plant',
+            'plate', 'point', 'pound', 'power', 'press', 'price', 'pride', 'prime', 'print', 'prior',
+            'prize', 'proof', 'proud', 'prove', 'queen', 'quick', 'quiet', 'quite', 'radio', 'raise',
+            'range', 'rapid', 'ratio', 'reach', 'ready', 'realm', 'rebel', 'refer', 'relax', 'reply',
+            'right', 'rival', 'river', 'robin', 'roger', 'roman', 'rough', 'round', 'route', 'royal',
+            'rural', 'scale', 'scene', 'scope', 'score', 'sense', 'serve', 'seven', 'shall', 'shape',
+            'share', 'sharp', 'sheet', 'shelf', 'shell', 'shift', 'shirt', 'shock', 'shoot', 'short',
+            'shown', 'sight', 'since', 'sixth', 'sixty', 'size', 'sleep', 'slide', 'small', 'smart',
+            'smile', 'smith', 'smoke', 'solid', 'solve', 'sorry', 'sound', 'south', 'space', 'spare',
+            'speak', 'speed', 'spend', 'spent', 'split', 'spoke', 'sport', 'staff', 'stage', 'stake',
+            'stand', 'start', 'state', 'steam', 'steel', 'steep', 'steer', 'steve', 'stick', 'still',
+            'stock', 'stone', 'stood', 'store', 'storm', 'story', 'strip', 'stuck', 'study', 'stuff',
+            'style', 'sugar', 'suite', 'super', 'sweet', 'table', 'taken', 'taste', 'taxes', 'teach',
+            'teeth', 'terry', 'texas', 'thank', 'theft', 'their', 'theme', 'there', 'these', 'thick',
+            'thing', 'think', 'third', 'those', 'three', 'threw', 'throw', 'thumb', 'tiger', 'tight',
+            'timer', 'tired', 'title', 'today', 'topic', 'total', 'touch', 'tough', 'tower', 'track',
+            'trade', 'train', 'treat', 'trend', 'trial', 'tribe', 'trick', 'tried', 'tries', 'truck',
+            'truly', 'trunk', 'trust', 'truth', 'twice', 'under', 'undue', 'union', 'unity', 'until',
+            'upper', 'upset', 'urban', 'usage', 'usual', 'valid', 'value', 'video', 'virus', 'visit',
+            'vital', 'voice', 'waste', 'watch', 'water', 'wheel', 'where', 'which', 'while', 'white',
+            'whole', 'whose', 'woman', 'women', 'world', 'worry', 'worse', 'worst', 'worth', 'would',
+            'wound', 'write', 'wrong', 'wrote', 'yield', 'young', 'youth'
+        ];
+
+        // DOM elements
+        const gameBoard = document.getElementById('gameBoard');
+        const keyboard = document.getElementById('keyboard');
+        const wordInput = document.getElementById('wordInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const message = document.getElementById('message');
+        const stats = document.getElementById('stats');
+        const attemptsSpan = document.getElementById('attempts');
+        const gameStatusSpan = document.getElementById('gameStatus');
+        const newGameBtn = document.getElementById('newGameBtn');
+
+        // Initialize game
+        function initGame() {
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            currentGuess = '';
+            attempts = 0;
+            gameWon = false;
+            gameOver = false;
+            
+            createGameBoard();
+            createKeyboard();
+            updateStats();
+            
+            message.style.display = 'none';
+            stats.style.display = 'none';
+            submitBtn.disabled = false;
+            wordInput.disabled = false;
+            wordInput.focus();
+            
+            console.log('Target word:', currentWord); // For debugging
+        }
+
+        // Create game board
+        function createGameBoard() {
+            gameBoard.innerHTML = '';
+            for (let row = 0; row < 6; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'game-row';
+                for (let col = 0; col < 5; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'game-cell';
+                    cell.id = `cell-${row}-${col}`;
+                    rowDiv.appendChild(cell);
+                }
+                gameBoard.appendChild(rowDiv);
+            }
+        }
+
+        // Create keyboard
+        function createKeyboard() {
+            keyboard.innerHTML = '';
+            const keyRows = [
+                ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+                ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+                ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE']
+            ];
+            
+            keyRows.forEach((row, rowIndex) => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'keyboard-row';
+                row.forEach(key => {
+                    const keyBtn = document.createElement('button');
+                    keyBtn.className = 'key';
+                    if (key === 'ENTER' || key === 'BACKSPACE') {
+                        keyBtn.className += ' special';
+                    }
+                    keyBtn.textContent = key === 'BACKSPACE' ? '⌫' : key === 'ENTER' ? '↵' : key;
+                    keyBtn.onclick = () => handleKeyPress(key);
+                    rowDiv.appendChild(keyBtn);
+                });
+                keyboard.appendChild(rowDiv);
+            });
+        }
+
+        // Handle keyboard input
+        function handleKeyPress(key) {
+            if (gameOver) return;
+            
+            if (key === 'ENTER') {
+                submitGuess();
+            } else if (key === 'BACKSPACE') {
+                currentGuess = currentGuess.slice(0, -1);
+                updateInput();
+            } else if (currentGuess.length < 5) {
+                currentGuess += key.toLowerCase();
+                updateInput();
+            }
+        }
+
+        // Update input field
+        function updateInput() {
+            wordInput.value = currentGuess.toUpperCase();
+        }
+
+        // Submit guess
+        function submitGuess() {
+            if (currentGuess.length !== 5) {
+                showMessage('Word must be 5 letters long', 'error');
+                return;
+            }
+            
+            if (!words.includes(currentGuess.toLowerCase())) {
+                showMessage('Not a valid word', 'error');
+                return;
+            }
+            
+            if (attempts >= 6) {
+                showMessage('Game over!', 'error');
+                return;
+            }
+            
+            // Process the guess
+            processGuess(currentGuess.toLowerCase());
+            currentGuess = '';
+            updateInput();
+            attempts++;
+            
+            if (gameWon || attempts >= 6) {
+                endGame();
+            }
+        }
+
+        // Process guess and update board
+        function processGuess(guess) {
+            const row = attempts;
+            const feedback = generateFeedback(guess, currentWord);
+            
+            // Update board
+            for (let col = 0; col < 5; col++) {
+                const cell = document.getElementById(`cell-${row}-${col}`);
+                const letter = guess[col].toUpperCase();
+                cell.textContent = letter;
+                cell.className = 'game-cell ' + feedback[col];
+            }
+            
+            // Update keyboard colors
+            updateKeyboardColors(guess, feedback);
+            
+            // Check if won
+            if (guess === currentWord) {
+                gameWon = true;
+                showMessage('Congratulations! You won!', 'success');
+            }
+        }
+
+        // Generate feedback for a guess
+        function generateFeedback(guess, target) {
+            const feedback = new Array(5).fill('absent');
+            const targetLetters = target.split('');
+            const guessLetters = guess.split('');
+            
+            // First pass: mark correct letters
+            for (let i = 0; i < 5; i++) {
+                if (guessLetters[i] === targetLetters[i]) {
+                    feedback[i] = 'correct';
+                    targetLetters[i] = null; // Mark as used
+                }
+            }
+            
+            // Second pass: mark present letters
+            for (let i = 0; i < 5; i++) {
+                if (feedback[i] !== 'correct') {
+                    const targetIndex = targetLetters.indexOf(guessLetters[i]);
+                    if (targetIndex !== -1) {
+                        feedback[i] = 'present';
+                        targetLetters[targetIndex] = null; // Mark as used
+                    }
+                }
+            }
+            
+            return feedback;
+        }
+
+        // Update keyboard colors
+        function updateKeyboardColors(guess, feedback) {
+            for (let i = 0; i < 5; i++) {
+                const letter = guess[i].toUpperCase();
+                const key = Array.from(keyboard.querySelectorAll('.key')).find(k => k.textContent === letter);
+                if (key) {
+                    // Remove existing color classes
+                    key.classList.remove('correct', 'present', 'absent');
+                    // Add new color class
+                    key.classList.add(feedback[i]);
+                }
+            }
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            message.textContent = text;
+            message.className = `message ${type}`;
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 3000);
+        }
+
+        // Update stats
+        function updateStats() {
+            attemptsSpan.textContent = attempts;
+            gameStatusSpan.textContent = gameWon ? 'Won!' : (gameOver ? 'Lost' : 'Playing');
+        }
+
+        // End game
+        function endGame() {
+            gameOver = true;
+            submitBtn.disabled = true;
+            wordInput.disabled = true;
+            
+            if (!gameWon) {
+                showMessage(`Game over! The word was: ${currentWord.toUpperCase()}`, 'error');
+            }
+            
+            stats.style.display = 'block';
+            updateStats();
+        }
+
+        // Event listeners
+        submitBtn.addEventListener('click', submitGuess);
+        wordInput.addEventListener('input', (e) => {
+            currentGuess = e.target.value.toLowerCase().replace(/[^a-z]/gi, '');
+            updateInput();
+        });
+        wordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitGuess();
+            }
+        });
+        newGameBtn.addEventListener('click', initGame);
+
+        // Initialize the game
+        initGame();
+    </script>
+</body>
+</html>
